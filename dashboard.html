@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Illume Task-easier(Taskmgt)</title>
+    <link rel="stylesheet" href="./css/page.css">
+    <link rel="import" href="script.js">
+</head>
+<body>
+    <main>
+            <div class="task-manager">
+                <nav>
+                    <ul>
+                        <li><a href="dashboard.html">Dashboard</a></li>
+                        <li><a href="login.html">Task Page</a></li>
+                        <li><a href="#">Completed</a></li>
+                        <li><a href="#">Settings</a></li>
+                        <li><a href="signup.html">Logout</a></li>
+                    </ul>
+                </nav>
+                <header>
+                    <h1>Welcome To Task-Master</h1>
+                    <h2>Track  your task with ease!</h2>
+                    <h3>Manage Your Tasks</h3>
+                    <button id="add-task-btn">+ Add Task</button>
+                </header>
+
+                <section class="task-summary">
+                    <div class="card">
+                      <h3>Total Tasks</h3>
+                      <p id="total-tasks">0</p>
+                    </div>
+                    <div class="card">
+                      <h3>In Progress</h3>
+                      <p id="in-progress-tasks">0</p>
+                    </div>
+                    <div class="card">
+                      <h3>Completed</h3>
+                      <p id="completed-tasks">0</p>
+                    </div>
+                </section>
+
+                <section class="task-list">
+                    <h2>Task List</h2>
+                    <ul id="task-container">
+                      <!-- for task to be added -->
+                    </ul>
+                  </section>
+
+            </div>
+        </div>
+    </main>
+   
+    <div id="task-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Add/Edit Task</h2>
+            <form id="task-form">
+                <label for="task-name">Task Name</label>
+                <input type="text" id="task-name" placeholder="Enter task name" required>
+        
+                <label for="task-priority">Priority</label>
+                <select id="task-priority">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+        
+                <label for="task-status">Status</label>
+                <select id="task-status">
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+        
+                <label for="task-deadline">Deadline</label>
+                <input type="datetime-local" id="task-deadline" required>
+        
+                <button type="submit" id="save-task-btn">Save Task</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+
+
+const addTaskBtn = document.getElementById("add-task-btn");
+const taskModal = document.getElementById("task-modal");
+const closeModalBtn = document.querySelector(".close-btn");
+const taskForm = document.getElementById("task-form");
+const taskContainer = document.getElementById("task-container");
+const totalTasksCount = document.getElementById("total-tasks");
+const inProgressTasksCount = document.getElementById("in-progress-tasks");
+const completedTasksCount = document.getElementById("completed-tasks");
+
+// helps  to Store Data (task array)
+let tasks = [];
+
+// code for Updating of Task Counters
+function updateTaskCounters() {
+  const total = tasks.length;
+  const inProgress = tasks.filter(task => task.status === "in-progress").length;
+  const completed = tasks.filter(task => task.status === "completed").length;
+
+  totalTasksCount.textContent = total;
+  inProgressTasksCount.textContent = inProgress;
+  completedTasksCount.textContent = completed;
+}
+
+// code for Function to Render Tasks in the Task List
+function renderTasks() {
+  taskContainer.innerHTML = ""; // Clears the task list
+
+  tasks.forEach((task, index) => {
+    // Create Task List Item
+    const taskItem = document.createElement("li");
+    taskItem.className = "task-item";
+
+    // for task Details
+    taskItem.innerHTML = `
+      <div>
+        <span><strong>${task.name}</strong> (${task.priority})</span>
+        <span>Deadline: ${task.deadline}</span>
+      </div>
+      <div>
+        <button class="edit-btn" data-index="${index}">✏️</button>
+        <button class="delete-btn" data-index="${index}">🗑️</button>
+      </div>
+    `;
+
+    // Add Task List Item to Task Container
+    taskContainer.appendChild(taskItem);
+  });
+
+  // Add Event Listeners for Edit and Delete Buttons
+  document.querySelectorAll(".edit-btn").forEach(button =>
+    button.addEventListener("click", editTask)
+  );
+  document.querySelectorAll(".delete-btn").forEach(button =>
+    button.addEventListener("click", deleteTask)
+  );
+
+  // updates task counters
+  updateTaskCounters();
+}
+
+// code for function to add or update task
+function saveTask(e) {
+  e.preventDefault();
+
+  // gather input values
+  const name = document.getElementById("task-name").value;
+  const priority = document.getElementById("task-priority").value;
+  const status = document.getElementById("task-status").value;
+  const deadline = document.getElementById("task-deadline").value;
+
+  const existingTaskIndex = taskForm.dataset.editIndex;
+
+  if (existingTaskIndex !== undefined) {
+    // Update Existing Task
+    tasks[existingTaskIndex] = { name, priority, status, deadline };
+    delete taskForm.dataset.editIndex;
+  } else {
+    // Add New Task
+    tasks.push({ name, priority, status, deadline });
+  }
+
+  // Clear Form and Close Modal
+  taskForm.reset();
+  taskModal.classList.add("hidden");
+
+  // Render Updated Task List
+  renderTasks();
+}
+
+// Function to Edit Task
+function editTask(e) {
+  const taskIndex = e.target.dataset.index;
+  const task = tasks[taskIndex];
+
+  // Populate Form with Task Data
+  document.getElementById("task-name").value = task.name;
+  document.getElementById("task-priority").value = task.priority;
+  document.getElementById("task-status").value = task.status;
+  document.getElementById("task-deadline").value = task.deadline;
+
+  // Set Edit Index on Form
+  taskForm.dataset.editIndex = taskIndex;
+
+  // Open Modal
+  taskModal.classList.remove("hidden");
+}
+
+// Function to Delete Task
+function deleteTask(e) {
+  const taskIndex = e.target.dataset.index;
+
+  // Remove Task from Array
+  tasks.splice(taskIndex, 1);
+
+  // Render Updated Task List
+  renderTasks();
+}
+
+// Event Listeners
+addTaskBtn.addEventListener("click", () => {
+  taskForm.reset();
+  delete taskForm.dataset.editIndex; // Clear Edit Index
+  taskModal.classList.remove("hidden"); // Show Modal
+});
+
+closeModalBtn.addEventListener("click", () => {
+  taskModal.classList.add("hidden"); // Hide Modal
+});
+
+taskForm.addEventListener("submit", saveTask);
+
+// Initial Render
+renderTasks();
+
+
+    </script>
+</body>
+</html>
+
+<style>
+
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background-color: #f4f4f9;
+    color: #333;
+  }
+  
+  main {
+    display: flex;
+    min-height: 100vh;
+  }
+  
+  nav ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    text-align: justify;
+    justify-content: space-between;
+    flex-direction: row;
+  }
+  
+nav ul li {
+    margin: 15px 0;
+    
+    
+}
+nav ul li a {
+    text-decoration: none;
+    color:#5c49d8 ;
+}
+nav {
+  border-bottom: 3px solid #efeae6;
+  padding: 10px 100px 10px 80px;
+  background-color: #fff;
+}
+nav ul li a:hover {
+  color: black;
+}
+  
+  .task-manager {
+    flex: 1;
+    padding: 20px;
+  }
+  
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  header h1 {
+    font-size: 28px;
+    color: #2c3e50;
+  }
+  
+  header h2, .dashboard h2  {
+    font-size: 20px;
+    color: #7f8c8d;
+  }
+  
+  header h3 {
+    font-size: 24px;
+    color: #5c49d8;
+    margin-bottom: 10px;
+  }
+  
+  header button {
+    background-color: #3498db;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  header button:hover {
+    background-color: #2980b9;
+  }
+  
+  
+  .task-summary {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+  }
+  
+  .card {
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 15px 20px;
+    text-align: center;
+    flex: 1;
+    margin: 0 10px;
+  }
+  
+  .card h3 {
+    font-size: 18px;
+    color: #2c3e50;
+    margin-bottom: 10px;
+  }
+  
+  .card p {
+    font-size: 24px;
+    color: #16a085;
+    font-weight: bold;
+  }
+  
+  
+  .task-list {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .task-list h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .task-list ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .task-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9f9f9;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .task-item div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .task-item button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #3498db;
+    transition: color 0.3s ease;
+  }
+  
+  .task-item button:hover {
+    color: #2980b9;
+  }
+  
+ 
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal.hidden {
+    display: none;
+  }
+  
+  .modal-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    position: relative;
+  }
+  
+  .modal-content h2 {
+    margin-bottom: 20px;
+    font-size: 22px;
+    text-align: center;
+    color: #2c3e50;
+  }
+  
+  .modal-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .modal-content input,
+  .modal-content select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .modal-content button {
+    background-color: #16a085;
+    color: #fff;
+    border: none;
+    padding: 10px;
+    width: 100%;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  
+  .modal-content button:hover {
+    background-color: #13876b;
+  }
+  
+  .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #333;
+  }
+  
+  .dashboard{
+    justify-items: center;
+  }
+
+  .dashboard p {
+    color: #5c49d8;
+  }
+  
+
+</style>
